@@ -21,22 +21,23 @@ def hncocg_eq(j_current, j_others, delay, tc,jcoca,B):
 
     #estimate T2C 
     B2 = B**2.
-    T2C = np.divide(1.,tc*(0.75 + np.divide(b2/150.)))
+    T2C = np.divide(1., tc*(0.75 + np.divide(B2,150.)))
 
     #delayDash
     delayDash = delay - np.divide(1,(2*jcoca))
 
     #since component
     f1 = np.sin(np.pi * j_current * delay)**2.
-    
+
     #first product 
     f1_product = 1.
     for i in j_others:
-        f1_product = f1_product * (np.coss(np.pi * i * delay)**2)
+        f1_product = f1_product * (np.cos(np.pi * i * delay)**2)
     
     #exponencial 
     indicie = np.divide(-2. * (delay - delayDash ), T2C)
     exp = np.power(np.e, indicie)
+
 
     #final product 
     p = j_others
@@ -50,12 +51,13 @@ def hncocg_eq(j_current, j_others, delay, tc,jcoca,B):
     working = f1*f1_product*exp
     final = np.divide(working, f2_product)
 
+
     return final
 
 def hncocg_residual(params, icross, iref, delay, tc,jcoca,B):
-	'''
+    '''
     this calculates the residual that is used during the minimsation
-	'''
+    '''
 
     diffsArray = np.zeros([1,len(icross)])
 
@@ -66,16 +68,18 @@ def hncocg_residual(params, icross, iref, delay, tc,jcoca,B):
         other_jc_val = []
         for i in params:
             if i != jc:
-            	other_jc_val.append(params[i].value)
+                other_jc_val.append(params[i].value)
+        
 
         calc = hncocg_eq(params[jc].value, other_jc_val, delay, tc,jcoca,B)
+
         diff = intensityRatio - calc
         diffsArray[count] = diff
     
     return diffsArray
 
-def hncocg_intensity2coupling(icross, iref, delay, tc,jcoca,B):
-	'''
+def hncocg_intensity2coupling(icross, iref, delay, tc,B,jcoca=54.0):
+    '''
 
     this function calculates the scalar couplings for the 
     hncocg experiment in the bruker library 
@@ -95,14 +99,16 @@ def hncocg_intensity2coupling(icross, iref, delay, tc,jcoca,B):
     
     Returns
     =======
-    jc: list - the list of 3bond J-couplings
+    out : lmfit object - contains the fitted J couplings in the order they appear
+                         in the icross
 
     '''
 
     #set up the lmfit parameters the values we optimise are the j-couplings 
     params = lmfit.Parameters()
-    for indx, entry in enumerate(iref):
-    	params.add('jc_'+str(indx), value=2.0, min=0., max=5.)
+    for indx, entry in enumerate(icross):
+        params.add('jc_'+str(indx), value=2.0, min=0., max=5.)
 
+    print params
     out = lmfit.minimize(hncocg_residual, params, args=(icross, iref, delay, tc,jcoca,B))
-    print(fit_report(out))
+    
