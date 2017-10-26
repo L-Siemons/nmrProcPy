@@ -6,11 +6,13 @@ This is a module for extracting scalar couplings
 
 import numpy as np
 import lmfit
+import logging
+import copy
 
 #==================== HNCOCG ===============================================
 #==================== HNCOCG ===============================================
 
-def hncocg_eq(j_current, j_others, delay, tc,jcoca,B):
+def hncocg_eq(j_current, j_others, delay, tc,jcoca,B,logLevel=logging.INFO):
     '''
     the main equation for determining the scalar couplings from the 
     HNCOCG experiment
@@ -18,39 +20,45 @@ def hncocg_eq(j_current, j_others, delay, tc,jcoca,B):
     equation 6
 
     '''
-
+    
+    logging.getLogger().setLevel(logLevel)
+    
     #estimate T2C 
     B2 = B**2.
     T2C = np.divide(1., tc*(0.75 + np.divide(B2,150.)))
+    logging.debug('T2C: %f' %(T2C))
 
     #delayDash
-    delayDash = delay - np.divide(1,(2*jcoca))
+    delayDash = delay - np.divide(1.,(2.*jcoca))
+    logging.debug("delta': %f"%(delayDash))
 
     #since component
     f1 = np.sin(np.pi * j_current * delay)**2.
+    logging.debug('f1: %f' %(f1))
 
     #first product 
     f1_product = 1.
     for i in j_others:
         f1_product = f1_product * (np.cos(np.pi * i * delay)**2)
-    
+    logging.debug('f1_product: %f' %(f1_product))
+
     #exponencial 
     indicie = np.divide(-2. * (delay - delayDash ), T2C)
     exp = np.power(np.e, indicie)
-
+    logging.debug('exp: %f' %(exp))
 
     #final product 
-    p = j_others
+    p = copy.deepcopy(j_others)
     p.append(j_current)
 
     f2_product = 1.
     for i in p:
         f2_product = f2_product * ( np.cos(np.pi*i* delayDash)**2. )
-    
+    logging.debug('f2_product: %f' %(f2_product))
+
     #put it all together
     working = f1*f1_product*exp
     final = np.divide(working, f2_product)
-
 
     return final
 
@@ -109,6 +117,5 @@ def hncocg_intensity2coupling(icross, iref, delay, tc,B,jcoca=54.0):
     for indx, entry in enumerate(icross):
         params.add('jc_'+str(indx), value=2.0, min=0., max=5.)
 
-    print params
     out = lmfit.minimize(hncocg_residual, params, args=(icross, iref, delay, tc,jcoca,B))
-    
+    return out

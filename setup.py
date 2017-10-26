@@ -15,6 +15,6 @@ setup(
     #license='LICENSE.txt',
     
     description='Module for converting nmr measurements from a spectrum to useful values',
-    long_description=open('README.txt').read(),
+    long_description=open('README.md').read(),
     install_requires=['numpy'],
     )
